@@ -1,0 +1,7 @@
+{
+    "cmake.configureSettings": {
+        "CMAKE_TOOLCHAIN_FILE": "C:/entwicklung/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    },
+    "cmake.generator": "Ninja",
+    "C_Cpp.default.compilerPath": "C:/Qt2/Tools/mingw1310_64/bin/g++.exe"
+}
