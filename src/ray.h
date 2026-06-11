@@ -20,11 +20,15 @@ struct Ray {
     double E, L; // conservede quantities
     vector<vec2> trail;
 
-    Ray(vec2 p, vec2 d, double r_s) : pos(p), dir(d) {
+    Ray(vec2 p, vec2 d, double r_s) : pos(p), dir(glm::normalize(d)) {
         r = hypot(pos.x, pos.y);
-        phi = atan(pos.y, pos.x);
-        dr = c * cos(phi) + dir.y * cos(phi) / r;
-        dphi = (-c * sin(phi) + dir.y * cos(phi)) / r;
+        phi = atan2(pos.y, pos.x);
+        /*dr = c * cos(phi) + dir.y * cos(phi) / r;
+        dphi = (-c * sin(phi) + dir.y * cos(phi)) / r;*/
+
+        dr = (double)dir.x * cos(phi) + (double)dir.y * sin(phi);
+        dphi = ((-(double)dir.x * sin(phi)) + (double)dir.y * cos(phi)) / r;
+
         d2r = 0.0;
         d2phi = 0.0;
 

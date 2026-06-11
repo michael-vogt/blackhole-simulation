@@ -44,6 +44,14 @@ struct Engine {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+
+        // Monitor-Auflösung abfragen
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        WIDTH  = mode->width;
+        HEIGHT = mode->height;
+
+        glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
         window = glfwCreateWindow(WIDTH, HEIGHT, "BlackHoleSimulator", nullptr, nullptr);
         if (!window) {
             cerr << "Failed to create GLFW window\n";
@@ -60,6 +68,7 @@ struct Engine {
             glfwTerminate();
             exit(EXIT_FAILURE);
         }
+        glfwGetFramebufferSize(window, &WIDTH, &HEIGHT);
         glViewport(0, 0, WIDTH, HEIGHT);
     }
 };
@@ -90,17 +99,40 @@ vector<vec2> createCircle(float radius, int segments) {
 
 int main()
 {
-    for (float y = -engine.height; y < engine.height; y+=1e10) {
-        rays.push_back(Ray(vec2(-engine.width, y), vec2(1.0, 0.0), SagA.r_s));
+    double start = 1.7 * M_PI;
+    double range = (2.0 * M_PI - (start - 1.5 * M_PI)) - start;
+    for (int i = 0; i <= 100; i++) {
+        double alpha = start + range * (i / 100.0);
+        vec2 dir(cos(alpha), sin(alpha));
+        Ray r(vec2(-engine.width, engine.height), dir, SagA.r_s);
+        rays.emplace_back(r);
     }
+    /*for (float y = -engine.height; y < engine.height; y+=1e10) {
+        rays.push_back(Ray(vec2(-engine.width, y), vec2(1.0, 0.0), SagA.r_s));
+    }*/
+
+    /*double eps = 0.03989528545;
+    double alpha = (1.75 - eps) * M_PI;
+    vec2 dir(cos(alpha), sin(alpha));
+    rays.push_back(Ray(vec2(-engine.width, engine.height), dir, SagA.r_s));*/
 
     initGPU();
 
+    float aspect = (float)engine.WIDTH / (float)engine.HEIGHT;
+    float halfH  = engine.height;
+    float halfW  = halfH * aspect;
+
     mat4 projection = ortho(
+        -halfW, halfW,
+        -halfH, halfH,
+        -1.0f,  1.0f
+    );
+
+    /*mat4 projection = ortho(
         -engine.width, engine.width,
         -engine.height, engine.height,
         -1.0f, 1.0f
-    );
+    );*/
 
     vector<Vertex> verticesBH;
     vector<Vertex> verticesRay;
@@ -120,7 +152,7 @@ int main()
         glLineWidth(1.0f);
 
         for (auto& ray : rays) {
-            ray.step(SagA.r_s, 1.0f);
+            ray.step(SagA.r_s, 5e8);
             //geodesic(ray, SagA.r_s);
             
             verticesRay.clear();
@@ -135,6 +167,25 @@ int main()
             renderRay(verticesRay);
             //ray.step(SagA.r_s, 1);
         }
+
+        // ========== HUD ==========
+        // Projektion zurücksetzen passiert in renderText intern
+
+        for (int i = 0; i < (int)rays.size(); i++) {
+            const Ray& ray = rays[i];
+
+            std::ostringstream oss;
+            oss << std::fixed << std::setprecision(6)
+                << "Ray " << i << "  "
+                << "dr="    << ray.dr;
+
+            renderText(oss.str(), 10.f, 10.f + i * 20.f,
+                       engine.WIDTH, engine.HEIGHT,
+                       {0.2f, 1.0f, 0.2f});
+        }
+
+        // Projektion für naechsten Frame wiederherstellen
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
 
         // ========== BLACK HOLE ==========
         verticesBH.clear();
